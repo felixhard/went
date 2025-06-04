@@ -1,0 +1,21 @@
+// This is a minimal example job worker function
+
+/**
+ * Example of a minimal job worker
+ * 
+ * @param args - The arguments passed to the job when submitted
+ * @param context - The context object containing prisma client
+ * @returns A promise that resolves to the job result
+ */
+export const perform = async (args: any, context: any) => {
+  console.log('[AnotherJob] Running with args:', args);
+  
+  // You can access the Prisma client from the context
+  // const data = await context.prisma.someModel.findMany();
+  
+  // Return a result (optional)
+  return {
+    success: true,
+    timestamp: new Date().toISOString()
+  };
+}; 

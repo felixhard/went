@@ -1,0 +1,29 @@
+import type { Metadata } from "next";
+import { GeistSans } from "geist/font/sans";
+import { GeistMono } from "geist/font/mono";
+import "./globals.css";
+import TrpcProvider from "@/lib/trpc/Provider";
+import { AuthProvider } from "@/components/auth/auth-provider";
+
+export const metadata: Metadata = {
+  title: "My Went App",
+  description: "Built with the Went framework",
+};
+
+export default function RootLayout({
+  children,
+}: Readonly<{
+  children: React.ReactNode;
+}>) {
+  return (
+    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
+      <body className="min-h-screen bg-background text-foreground font-sans">
+        <AuthProvider>
+          <TrpcProvider>
+            {children}
+          </TrpcProvider>
+        </AuthProvider>
+      </body>
+    </html>
+  );
+}

@@ -1,0 +1,95 @@
+import { NextResponse } from "next/server";
+import { hash } from "bcrypt";
+import { db } from "@/lib/db";
+
+export async function POST(req: Request) {
+  try {
+    const { token, newPassword } = await req.json();
+
+    if (!token || !newPassword) {
+      return NextResponse.json(
+        { message: "Token and new password are required" },
+        { status: 400 }
+      );
+    }
+
+    // Find the token in the database
+    const resetToken = await db.passwordResetToken.findUnique({
+      where: {
+        token,
+      },
+      include: {
+        user: true,
+      },
+    });
+
+    // Check if token exists and is valid
+    if (!resetToken) {
+      return NextResponse.json(
+        { message: "Invalid or expired token" },
+        { status: 400 }
+      );
+    }
+
+    // Check if token has expired
+    if (new Date() > resetToken.expiresAt) {
+      // Clean up expired token
+      await db.passwordResetToken.delete({
+        where: {
+          id: resetToken.id,
+        },
+      });
+
+      return NextResponse.json(
+        { message: "Token has expired. Please request a new password reset link." },
+        { status: 400 }
+      );
+    }
+
+    // Hash the new password
+    const hashedPassword = await hash(newPassword, 10);
+
+    // Update the user's password
+    try {
+      await db.user.update({
+        where: {
+          id: resetToken.userId!,
+        },
+        data: {
+          password: hashedPassword,
+        },
+      });
+    } catch (error: any) {
+      // If error contains "Unknown argument `password`", it means the password field doesn't exist
+      if (error.message && error.message.includes("Unknown argument `password`")) {
+        return NextResponse.json(
+          { 
+            message: "Password field is not in the database schema. Please run 'npx prisma migrate dev' to update your schema." 
+          },
+          { status: 400 }
+        );
+      }
+      
+      // If it's another error, rethrow it
+      throw error;
+    }
+
+    // Delete the used token
+    await db.passwordResetToken.delete({
+      where: {
+        id: resetToken.id,
+      },
+    });
+
+    return NextResponse.json(
+      { message: "Password has been successfully reset" },
+      { status: 200 }
+    );
+  } catch (error) {
+    console.error("Password reset error:", error);
+    return NextResponse.json(
+      { message: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+} 

@@ -1,0 +1,122 @@
+/**
+ * Welcome to your Went project configuration!
+ *
+ * This file is used by the 'went' CLI to understand your project's structure,
+ * generate code, and manage integrations.
+ *
+ * Refer to the 'went' CLI documentation for details on each section.
+ * The expected structure for this config aligns with the 'WentConfig' interface
+ * used internally by the CLI.
+ */
+
+// const projectName = "my-awesome-went-app"; // Optional: Project name, usually handled by folder name.
+
+const config = {
+  /**
+   * Project name.
+   * Automatically filled when the project is created.
+   */
+  projectName: "{{projectName}}",
+
+  /**
+   * (Optional) Database configuration.
+   * This can influence how 'prisma/schema.prisma' is generated, particularly the datasource provider.
+   */
+  database: {
+    provider: "postgresql", // Supported: "postgresql", "mysql", "sqlite"
+    // Other settings like connection pooling, etc., might be added here in the future.
+  },
+
+  /**
+   * Prisma ORM Configuration.
+   * Used by the 'went generate-prisma' command to create/update your 'prisma/schema.prisma' file.
+   * 
+   * By default, a User model is created automatically. You can customize it or add more models here.
+   */
+  prisma: {
+    // The 'datasourceUrl' is typically managed via the .env file (DATABASE_URL).
+    entities: [
+      // --- Example Entity Definitions ---
+      // Uncomment and modify this User model to customize it
+      // If you don't define any entities, a default User model will be created
+      /*
+      {
+        name: "User",
+        fields: {
+          id: { type: "String", isId: true, defaultValue: "cuid()" },
+          name: { type: "String", isOptional: true },
+          email: { type: "String", isOptional: true, isUnique: true },
+          emailVerified: { type: "DateTime", isOptional: true },
+          image: { type: "String", isOptional: true },
+          createdAt: { type: "DateTime", defaultValue: "now()" },
+          updatedAt: { type: "DateTime", defaultValue: "now()", isOptional: true }
+        }
+      },
+      // Example of related models for authentication (uncomment for NextAuth.js)
+      {
+        name: "Account",
+        fields: {
+          id: { type: "String", isId: true, defaultValue: "cuid()" },
+          userId: { type: "String" },
+          type: { type: "String" },
+          provider: { type: "String" },
+          providerAccountId: { type: "String" },
+          refresh_token: { type: "String", isOptional: true },
+          access_token: { type: "String", isOptional: true },
+          expires_at: { type: "Int", isOptional: true },
+          token_type: { type: "String", isOptional: true },
+          scope: { type: "String", isOptional: true },
+          id_token: { type: "String", isOptional: true },
+          session_state: { type: "String", isOptional: true }
+          // You would also need to define the relation to User
+        }
+      },
+      {
+        name: "Session",
+        fields: {
+          id: { type: "String", isId: true, defaultValue: "cuid()" },
+          sessionToken: { type: "String", isUnique: true },
+          userId: { type: "String" },
+          expires: { type: "DateTime" }
+          // You would also need to define the relation to User
+        }
+      },
+      {
+        name: "VerificationToken",
+        fields: {
+          identifier: { type: "String" },
+          token: { type: "String", isUnique: true },
+          expires: { type: "DateTime" }
+          // This would typically have a @@unique([identifier, token]) constraint
+        }
+      }
+      */
+    ],
+  },
+
+  /**
+   * tRPC API Configuration (Placeholder for future 'went' features)
+   * You might define routers or procedures here for 'went' to scaffold.
+   */
+  // trpc: {
+  //   // ...
+  // },
+
+  /**
+   * Authentication Configuration (Placeholder for future 'went' features)
+   * Define NextAuth.js setup, providers (e.g., Supabase Auth details).
+   */
+  // auth: {
+  //   // ...
+  // },
+
+  /**
+   * Jobs Configuration.
+   * Jobs are configured in jobs.went.json - see README-JOBS.md for details.
+   */
+  // jobs: {
+  //   // This is a reference to jobs.went.json
+  // },
+};
+
+export default config;

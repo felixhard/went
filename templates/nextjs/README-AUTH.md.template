@@ -1,0 +1,299 @@
+# Authentication in Your Went Project
+
+This project comes with a built-in authentication system powered by NextAuth.js. The authentication system is ready to use out of the box with minimal configuration.
+
+## Features
+
+- Email/Password authentication
+- OAuth providers (Google, GitHub)
+- User registration and login
+- JWT-based sessions
+- Customizable UI
+
+## Getting Started
+
+1. Set up your environment variables in `.env`:
+
+```env
+# NextAuth.js
+NEXTAUTH_SECRET="your-nextauth-secret" # Generate with: openssl rand -base64 32
+NEXTAUTH_URL="http://localhost:3000"
+
+# OAuth Providers (optional)
+GOOGLE_CLIENT_ID=""
+GOOGLE_CLIENT_SECRET=""
+
+GITHUB_CLIENT_ID=""
+GITHUB_CLIENT_SECRET=""
+```
+
+2. Set up your database:
+
+```bash
+npx prisma migrate dev --name init
+```
+
+3. **Important**: Make sure your Prisma schema includes the `password` field in the User model:
+
+```prisma
+model User {
+  id            String    @id @default(cuid())
+  name          String?
+  email         String?   @unique
+  emailVerified DateTime?
+  image         String?
+  password      String?   // Required for email/password authentication
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+  
+  // Auth related models
+  accounts      Account[]
+  sessions      Session[]
+}
+```
+
+If you need to add the password field after initial setup:
+
+```bash
+npx prisma migrate dev --name add_password_field
+```
+
+## Usage
+
+### Authentication Pages
+
+The following authentication pages are available:
+
+- `/login` - Login page
+- `/register` - Registration page
+
+### Auth Components
+
+The main component for authentication is `AuthForm`, which can be used for both login and registration:
+
+```tsx
+import { AuthForm } from "@/components/auth/auth-form";
+import { authAppearance } from "@/lib/auth-appearance";
+
+// Login form
+<AuthForm mode="login" appearance={authAppearance} />
+
+// Registration form
+<AuthForm mode="signup" appearance={authAppearance} />
+```
+
+### Customizing the Appearance
+
+You can customize the appearance of the authentication UI by modifying the `auth-appearance.ts` file:
+
+```typescript
+// src/lib/auth-appearance.ts
+export const authAppearance = {
+  colors: {
+    brand: "#0070f3", // Main color
+    brandAccent: "#0761d1", // Hover color
+    submitButtonText: "#ffffff", // Button text color
+  },
+};
+```
+
+### Adding a Logo
+
+You can add your logo to the authentication forms:
+
+```tsx
+import { AuthForm } from "@/components/auth/auth-form";
+import { authAppearance } from "@/lib/auth-appearance";
+import Logo from "@/assets/logo.png";
+
+<AuthForm 
+  mode="login" 
+  appearance={authAppearance} 
+  logo={Logo} 
+/>
+```
+
+### Changing Social Button Layout
+
+You can change the layout of social buttons to vertical:
+
+```tsx
+<AuthForm 
+  mode="login" 
+  appearance={authAppearance} 
+  socialLayout="vertical" 
+/>
+```
+
+## Accessing User Data
+
+You can access the current user's data in server components:
+
+```tsx
+import { auth } from "@/lib/auth";
+
+export default async function Page() {
+  const session = await auth();
+  
+  if (session?.user) {
+    return <div>Hello, {session.user.name}!</div>;
+  }
+  
+  return <div>Not logged in</div>;
+}
+```
+
+Or in client components:
+
+```tsx
+"use client";
+
+import { useSession } from "next-auth/react";
+
+export default function ClientComponent() {
+  const { data: session } = useSession();
+  
+  if (session?.user) {
+    return <div>Hello, {session.user.name}!</div>;
+  }
+  
+  return <div>Not logged in</div>;
+}
+```
+
+## User Menu Component
+
+A `UserMenu` component is included that displays either login/register links or a user dropdown menu:
+
+```tsx
+import { UserMenu } from "@/components/auth/user-menu";
+
+<UserMenu />
+```
+
+## Protected Routes
+
+You can protect routes by checking for a session:
+
+```tsx
+import { auth } from "@/lib/auth";
+import { redirect } from "next/navigation";
+
+export default async function ProtectedPage() {
+  const session = await auth();
+  
+  if (!session) {
+    redirect("/login");
+  }
+  
+  return <div>Protected content</div>;
+}
+```
+
+## Troubleshooting
+
+### JWT Decryption Errors
+
+If you see errors like `JWEDecryptionFailed: decryption operation failed`, it's likely due to an invalid or missing `NEXTAUTH_SECRET`.
+
+Solutions:
+1. Make sure you have a valid `NEXTAUTH_SECRET` in your `.env` file
+2. Generate a new secret with: `openssl rand -base64 32` or `node -e "console.log(crypto.randomBytes(32).toString('base64'))"`
+3. If you changed the secret after users have already signed in, they will need to sign in again
+
+### Email Functionality
+
+This project includes built-in email functionality for:
+- Welcome emails on registration
+- Password reset flows
+
+To use these features:
+
+1. Set up a [Resend](https://resend.com) account (they offer a generous free tier)
+2. Add your API key to the `.env` file:
+   ```
+   RESEND_API_KEY="re_your_api_key"
+   DEFAULT_EMAIL_FROM="onboarding@resend.dev" # or your verified domain
+   ```
+
+#### Password Reset Flow
+
+The complete password reset flow is implemented and includes:
+1. A "Forgot password?" link on the login page
+2. Password reset request form
+3. Secure token generation and storage
+4. Email delivery with a reset link
+5. Password reset form with validation
+
+#### Customizing Email Templates
+
+Email templates are React components located in the `src/emails/` directory:
+- `WelcomeEmail.tsx` - Sent after registration
+- `PasswordResetEmail.tsx` - Sent for password reset requests
+
+You can customize these templates using the [React Email](https://react.email) component library.
+
+### Database Schema Issues
+
+If you encounter errors related to missing fields in the User model:
+
+1. Make sure you've run `npx prisma migrate dev` after setting up your database
+2. Check that your Prisma schema includes all required fields:
+   ```prisma
+   model User {
+     id            String    @id @default(cuid())
+     name          String?
+     email         String?   @unique
+     emailVerified DateTime?
+     image         String?
+     password      String?   // Required for email/password auth
+     createdAt     DateTime  @default(now())
+     updatedAt     DateTime  @updatedAt
+     
+     // Auth related models
+     accounts      Account[]
+     sessions      Session[]
+   }
+   ```
+3. After updating your schema, run:
+   ```bash
+   npx prisma generate
+   npx prisma migrate dev --name add_auth_fields
+   ```
+
+### OAuth Provider Issues
+
+If OAuth login isn't working:
+
+1. Verify your provider credentials in `.env`
+2. Make sure redirect URIs in your OAuth provider dashboard include:
+   - `http://localhost:3000/api/auth/callback/google` (for Google)
+   - `http://localhost:3000/api/auth/callback/github` (for GitHub)
+3. For production, update the URLs to your actual domain 
+
+### Hydration Errors with Form Inputs
+
+If you encounter React hydration errors related to form inputs:
+
+```
+Warning: Extra attributes from the server: data-np-autofill-field-type,data-np-uid
+```
+
+These errors occur when browser extensions, password managers, or autofill services add attributes to input fields that weren't present in the server-rendered HTML.
+
+This application uses a `ClientOnly` component to prevent these hydration errors by only rendering form inputs on the client side:
+
+```tsx
+import { ClientOnly } from "@/components/client-only";
+
+// Wrap inputs with ClientOnly to prevent hydration errors
+<ClientOnly>
+  <input
+    type="email"
+    name="email"
+    // ...other props
+  />
+</ClientOnly>
+```
+
+If you create new forms, make sure to wrap input elements with the `ClientOnly` component to avoid hydration errors. 

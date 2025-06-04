@@ -1,0 +1,28 @@
+/**
+ * Auth UI appearance configuration
+ * Customize the colors and styles of the authentication UI
+ */
+
+export const authAppearance = {
+  colors: {
+    // Main brand color used for buttons and links
+    brand: "#000000",
+    
+    // Color used for hover states
+    brandAccent: "#404040",
+    
+    // Text color for submit buttons
+    submitButtonText: "#ffffff",
+  },
+};
+
+// Example of customized appearance with different colors:
+/*
+export const authAppearance = {
+  colors: {
+    brand: "#0070f3",
+    brandAccent: "#0761d1",
+    submitButtonText: "#ffffff",
+  },
+};
+*/ 

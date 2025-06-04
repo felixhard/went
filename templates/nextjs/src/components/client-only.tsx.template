@@ -1,0 +1,26 @@
+'use client';
+
+import { useEffect, useState } from 'react';
+
+/**
+ * ClientOnly component
+ * 
+ * Renders children only on the client side, preventing hydration mismatches
+ * for components that might be modified by browser extensions or plugins.
+ * 
+ * This is particularly useful for form inputs that may have attributes 
+ * added by password managers or autofill extensions.
+ */
+export function ClientOnly({ children }: { children: React.ReactNode }) {
+  const [isMounted, setIsMounted] = useState(false);
+
+  useEffect(() => {
+    setIsMounted(true);
+  }, []);
+
+  if (!isMounted) {
+    return null;
+  }
+
+  return <>{children}</>;
+} 

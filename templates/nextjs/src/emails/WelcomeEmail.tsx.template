@@ -1,0 +1,30 @@
+import * as React from 'react';
+import { Html, Button, Heading, Text, Hr } from '@react-email/components';
+
+interface WelcomeEmailProps {
+  userName?: string;
+  projectName?: string;
+}
+
+export const WelcomeEmail: React.FC<Readonly<WelcomeEmailProps>> = ({
+  userName = 'User',
+  projectName = 'Our Awesome App',
+}) => (
+  <Html lang="en">
+    <Heading as="h1">Welcome to {projectName}!</Heading>
+    <Text>Hi {userName},</Text>
+    <Text>
+      Thanks for signing up for {projectName}. We're excited to have you on board!
+    </Text>
+    <Text>
+      You can now log in to your account and start exploring.
+    </Text>
+    {/* <Button href={process.env.NEXTAUTH_URL || 'http://localhost:3000'}>
+      Go to App
+    </Button> */}
+    <Hr />
+    <Text>The {projectName} Team</Text>
+  </Html>
+);
+
+export default WelcomeEmail; 

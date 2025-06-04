@@ -1,0 +1,48 @@
+{
+  "compilerOptions": {
+    "lib": ["dom", "dom.iterable", "esnext"],
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "noEmit": true,
+    "esModuleInterop": true,
+    "module": "esnext",
+    "moduleResolution": "bundler",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "jsx": "preserve",
+    "incremental": true,
+    "target": "ES2017",
+    "plugins": [
+      {
+        "name": "next"
+      }
+    ],
+    "paths": {
+      "@/*": ["./src/*"],
+      "~/.went/*": ["./.went/*"]
+    },
+    "forceConsistentCasingInFileNames": true,
+    "noErrorTruncation": false
+  },
+  "include": [
+    "next-env.d.ts",
+    ".next/types/**/*.ts",
+    ".went/**/*.ts",
+    "src/app/**/*.{ts,tsx}",
+    "src/components/**/*.{ts,tsx}",
+    "src/lib/**/*.{ts,tsx}",
+    "src/types/**/*.{ts,tsx}",
+    "src/server/api/**/*.{ts,tsx}",
+    "src/server/lib/**/*.{ts,tsx}",
+    "src/server/jobs/**/*.{ts,tsx}"
+  ],
+  "exclude": [
+    "node_modules",
+    "**/*.spec.ts",
+    "**/*.test.ts",
+    "**/*.spec.tsx",
+    "**/*.test.tsx",
+    "src/server/workers/**/*.ts"
+  ]
+}

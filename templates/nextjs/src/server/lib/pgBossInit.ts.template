@@ -1,0 +1,45 @@
+import PgBoss from 'pg-boss';
+import { initializeJobs } from '../jobs';
+
+let boss: PgBoss | null = null;
+
+export async function getPgBoss(): Promise<PgBoss> {
+  if (boss && boss.isStarted()) return boss;
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL environment variable is not set. pg-boss requires it.");
+  }
+
+  // Handle PG_BOSS_NEW_OPTIONS for custom pg-boss initialization (e.g., for Heroku)
+  // Ref: Wasp docs on pg-boss considerations for Heroku
+  let pgBossOptions: PgBoss.ConstructorOptions = { connectionString };
+  if (process.env.PG_BOSS_NEW_OPTIONS) {
+    try {
+      console.log("[PgBoss] Applying PG_BOSS_NEW_OPTIONS...");
+      pgBossOptions = JSON.parse(process.env.PG_BOSS_NEW_OPTIONS);
+      // Ensure connectionString is part of custom options if it overrides all defaults
+      if (!pgBossOptions.connectionString) pgBossOptions.connectionString = connectionString;
+    } catch (e) {
+      console.error("[PgBoss] Failed to parse PG_BOSS_NEW_OPTIONS:", e);
+      // Fall back to default options with just the connection string
+    }
+  }
+  
+  boss = new PgBoss(pgBossOptions);
+
+  boss.on('error', error => console.error("[PgBoss] Error:", error));
+
+  console.log("[PgBoss] Starting...");
+  await boss.start();
+  console.log("[PgBoss] Started successfully.");
+  
+  // Register scheduled jobs
+  await initializeJobs(boss);
+
+  return boss;
+}
+
+// You should call getPgBoss() early in server startup
+// For Next.js, this might be in a global setup file or when the app initializes
+// Example: In an API route, import and call getPgBoss() before handling requests 

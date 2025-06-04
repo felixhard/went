@@ -1,0 +1,49 @@
+import { Resend } from 'resend';
+import React from 'react';
+
+if (!process.env.RESEND_API_KEY) {
+  console.warn("RESEND_API_KEY is not set. Email sending will be disabled.");
+}
+
+export const resend = new Resend(process.env.RESEND_API_KEY);
+
+interface EmailOptions {
+  to: string | string[];
+  subject: string;
+  react: React.ReactElement; // For React Email component
+  from?: string; // Optional, can be configured in Resend dashboard
+  text?: string; // Optional fallback or alternative
+}
+
+export async function sendEmail({ to, subject, react, from, text }: EmailOptions) {
+  if (!process.env.RESEND_API_KEY) {
+    console.error("Attempted to send email without RESEND_API_KEY. Aborting.");
+    // In development, you might want to log the email content instead of sending
+    if (process.env.NODE_ENV === 'development') {
+      console.log("--- Email Sending Skipped (No API Key) ---");
+      console.log("To:", to);
+      console.log("Subject:", subject);
+      console.log("React Component:", react.type.name || 'UnnamedReactEmailComponent');
+      console.log("--- End Email ---");
+      return { data: null, error: { message: "Email sending skipped in dev (no API key)" }};
+    }
+    throw new Error("RESEND_API_KEY is not configured.");
+  }
+
+  const defaultFrom = process.env.DEFAULT_EMAIL_FROM || 'onboarding@resend.dev'; // Example, should be configured by user
+
+  try {
+    const data = await resend.emails.send({
+      from: from || defaultFrom,
+      to,
+      subject,
+      react,
+      text, // Optional
+    });
+    console.log("Email sent successfully:", data);
+    return { data, error: null };
+  } catch (error) {
+    console.error("Error sending email:", error);
+    return { data: null, error };
+  }
+} 

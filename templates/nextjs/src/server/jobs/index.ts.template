@@ -1,0 +1,107 @@
+import PgBoss from 'pg-boss';
+import { PrismaClient } from '@prisma/client';
+import fs from 'fs';
+import path from 'path';
+
+// This type/interface would be part of the generated code (.went/generated/jobs.ts)
+interface JobDefinition {
+  name: string;
+  performFnPath: string; // Path from jobs.went.json, e.g., "@server/workers/mySpecialJobWorker.ts"
+  entities: string[]; // Names of entities for context
+  schedule?: { 
+    cron: string; 
+    args?: any; 
+    executorOptions?: { 
+      pgBoss?: PgBoss.ScheduleOptions 
+    } 
+  };
+  performExecutorOptions?: { 
+    pgBoss?: PgBoss.WorkOptions 
+  };
+}
+
+const prisma = new PrismaClient(); // Share Prisma client
+
+async function loadAndRegisterJobs(boss: PgBoss, jobDefinitions: JobDefinition[]) {
+  for (const jobDef of jobDefinitions) {
+    try {
+      // Dynamically import the user's worker module
+      // The path needs to be resolved correctly from project root/src
+      const workerModule = await import(jobDef.performFnPath.replace('@server', './../server'));
+      const userPerformFn = workerModule.perform;
+
+      if (typeof userPerformFn !== 'function') {
+        console.error(`[Jobs] Worker function 'perform' not found or not a function in ${jobDef.performFnPath} for job ${jobDef.name}`);
+        continue;
+      }
+
+      // Prepare the entities context for this specific job
+      const jobEntitiesContext: Record<string, any> = {};
+      for (const entityName of jobDef.entities || []) {
+        if (entityName in prisma) {
+          jobEntitiesContext[entityName] = (prisma as any)[entityName.toLowerCase()]; // e.g., prisma.task
+        }
+      }
+
+      const workerWrapper = async (job: PgBoss.Job<any>) => {
+        const context = {
+          prisma,
+          entities: jobEntitiesContext,
+        };
+        // Assuming the user's function is correctly typed via generated types
+        return userPerformFn(job.data, context as any);
+      };
+
+      await boss.work(jobDef.name, jobDef.performExecutorOptions?.pgBoss || {}, workerWrapper);
+      console.log(`[Jobs] Worker registered for: ${jobDef.name}`);
+
+      if (jobDef.schedule) {
+        // Check if schedule already exists to avoid duplicates, or manage updates
+        // pg-boss schedule names are just the job name for cron based schedules
+        // Wasp docs note: changing schedule requires manual DB cleanup. Document this.
+        await boss.schedule(jobDef.name, jobDef.schedule.cron, jobDef.schedule.args || null, jobDef.schedule.executorOptions?.pgBoss || {});
+        console.log(`[Jobs] Scheduled: ${jobDef.name} with cron "${jobDef.schedule.cron}"`);
+      }
+    } catch (e) {
+      console.error(`[Jobs] Error registering job ${jobDef.name}:`, e);
+    }
+  }
+}
+
+// This function is called from pgBossInit.ts after boss.start()
+export async function initializeJobs(boss: PgBoss) {
+  const jobDefinitions: JobDefinition[] = []; // Will be populated from jobs.went.json
+
+  try {
+    // Try to load jobs.went.json from the project root
+    const jobsConfigPath = path.join(process.cwd(), 'jobs.went.json');
+    
+    if (fs.existsSync(jobsConfigPath)) {
+      const jobsConfigFile = fs.readFileSync(jobsConfigPath, 'utf-8');
+      const jobsConfig = JSON.parse(jobsConfigFile);
+      
+      for (const jobName in jobsConfig) {
+        const job = jobsConfig[jobName];
+        jobDefinitions.push({
+          name: jobName,
+          performFnPath: job.perform.fn,
+          entities: job.entities || [],
+          schedule: job.schedule,
+          performExecutorOptions: job.perform.executorOptions
+        });
+      }
+      
+      console.log(`[Jobs] Loaded ${jobDefinitions.length} job definition(s) from jobs.went.json`);
+    } else {
+      console.log("[Jobs] No jobs.went.json file found. Skipping job initialization.");
+      return;
+    }
+  } catch (e) {
+    console.warn("[Jobs] Error reading or parsing jobs.went.json:", e);
+    return;
+  }
+
+  if (jobDefinitions.length > 0) {
+    await loadAndRegisterJobs(boss, jobDefinitions);
+  }
+} 

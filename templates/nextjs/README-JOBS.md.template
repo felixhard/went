@@ -1,0 +1,156 @@
+# Jobs in Went
+
+The jobs feature allows you to run background tasks in your application, similar to how it's done in the Wasp framework. Jobs are great for:
+
+- Processing tasks asynchronously in the background
+- Running operations on a schedule (cron jobs)
+- Handling long-running operations without blocking the web server
+- Retrying failed operations automatically
+
+Went uses [pg-boss](https://github.com/timgit/pg-boss) to implement its job system, which provides a robust job queue based on PostgreSQL.
+
+## Quick Start
+
+1. Define your jobs in `jobs.went.json` in the project root (see `jobs.went.json.example` for an example).
+2. Create worker functions in `src/server/workers/` directory.
+3. Run `npx went generate-jobs` to generate TypeScript types and APIs.
+4. Import and use the generated job APIs in your server code.
+
+## Job Definition
+
+Jobs are defined in a `jobs.went.json` file at the root of your project. Here's an example:
+
+```json
+{
+  "emailJob": {
+    "executor": "PgBoss",
+    "perform": {
+      "fn": "@server/workers/emailWorker.ts",
+      "executorOptions": {
+        "pgBoss": {
+          "retryLimit": 3,
+          "retryDelay": 60,
+          "expireInSeconds": 3600
+        }
+      }
+    },
+    "schedule": {
+      "cron": "0 * * * *",
+      "args": {
+        "type": "digest"
+      }
+    },
+    "entities": ["User", "Email"]
+  }
+}
+```
+
+**Key fields:**
+
+- **Job Name** (the key, e.g., `"emailJob"`): A unique identifier for your job.
+- **`executor`**: Currently, only `"PgBoss"` is supported.
+- **`perform.fn`**: Path to the worker function file, relative to `src` (use the `@server` alias).
+- **`perform.executorOptions.pgBoss`**: Options passed to pg-boss when submitting the job.
+- **`schedule`** (optional): For recurring jobs:
+  - `cron`: A standard cron expression (minutes, hours, day of month, month, day of week).
+  - `args`: The arguments to pass to the worker function when invoked on schedule.
+  - `executorOptions.pgBoss`: Override default options for scheduled jobs.
+- **`entities`** (optional): List of Prisma entities to make available in the job context.
+
+## Worker Functions
+
+Worker functions should be placed in `src/server/workers/` and export a `perform` function:
+
+```typescript
+// src/server/workers/emailWorker.ts
+import { type EmailJobPerformFn } from '~/.went/generated/jobs';
+
+export const perform: EmailJobPerformFn = async (args, context) => {
+  console.log('Running email job with args:', args);
+  
+  // Access Prisma entities directly
+  const users = await context.entities.User.findMany();
+  
+  // Or use the full Prisma client
+  const emails = await context.prisma.email.findMany();
+  
+  // Do your work here...
+  
+  return { success: true, processedCount: users.length };
+};
+```
+
+## Submitting Jobs
+
+After defining your jobs and running `npx went generate-jobs`, you can import and use them in your server code:
+
+```typescript
+// src/server/api/routers/email.ts
+import { emailJob } from '~/.went/generated/jobs';
+import { createTRPCRouter, protectedProcedure } from '../trpc';
+import { z } from 'zod';
+
+export const emailRouter = createTRPCRouter({
+  sendWelcomeEmail: protectedProcedure
+    .input(z.object({ userId: z.string() }))
+    .mutation(async ({ input }) => {
+      // Submit a job to be processed in the background
+      const { jobId } = await emailJob.submit({
+        type: 'welcome',
+        userId: input.userId
+      });
+      
+      return { success: true, jobId };
+    }),
+  
+  sendDelayedEmail: protectedProcedure
+    .input(z.object({ userId: z.string(), delayMinutes: z.number() }))
+    .mutation(async ({ input }) => {
+      // Submit a job to be processed after a delay
+      const { jobId } = await emailJob
+        .delay(input.delayMinutes * 60) // Convert to seconds
+        .submit({
+          type: 'reminder',
+          userId: input.userId
+        });
+      
+      return { success: true, jobId };
+    })
+});
+```
+
+## Important Notes
+
+### PostgreSQL Setup
+
+pg-boss requires a PostgreSQL database and will create its own schema called `pgboss` with tables for job tracking. The database user specified in `DATABASE_URL` must have permissions to create schemas and tables.
+
+### Changing Job Definitions
+
+**Important**: If you change a job name or its schedule, or remove a scheduled job, the old schedule might still persist in the `pgboss.schedule` table. You may need to manually remove stale rows from this table.
+
+### Heroku Deployment
+
+When deploying to Heroku, you'll need to set an additional environment variable:
+
+```
+PG_BOSS_NEW_OPTIONS={"connectionString":"<HEROKU_DATABASE_URL>","ssl":{"rejectUnauthorized":false}}
+```
+
+This is because pg-boss uses the `pg` package, which requires specific SSL configuration for Heroku PostgreSQL.
+
+### CPU-Intensive Tasks
+
+Jobs run alongside your web server code in the same Node.js process. For CPU-intensive tasks, consider implementing a separate worker service in a future version.
+
+## Cron Expression Format
+
+The schedule uses standard cron format: `minute hour day-of-month month day-of-week`
+
+For example:
+- `* * * * *` - Every minute
+- `0 * * * *` - Every hour at minute 0
+- `0 0 * * *` - Every day at midnight
+- `*/5 * * * *` - Every 5 minutes
+
+You can use tools like [Crontab Guru](https://crontab.guru/) to help create your cron expressions. 

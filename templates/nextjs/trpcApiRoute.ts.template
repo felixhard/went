@@ -1,0 +1,32 @@
+/**
+ * This is the tRPC Next.js App Router API Handler.
+ * It exposes your tRPC router to the client.
+ */
+import { fetchRequestHandler } from '@trpc/server/adapters/fetch';
+import { type NextRequest } from 'next/server';
+
+// Adjust these import paths if your tRPC root router and context are structured differently
+// This assumes your 'appRouter' is exported from 'src/server/api/root.ts'
+// and 'createContext' from 'src/server/api/trpc.ts'
+// The '@/' alias should be configured in tsconfig.json to point to './src/'
+import { appRouter } from '@/server/api/root';
+import { createContext } from '@/server/api/trpc';
+
+const handler = (req: NextRequest) =>
+  fetchRequestHandler({
+    endpoint: '/api/trpc', // This is the conventional endpoint
+    req,
+    router: appRouter,
+    createContext: () => createContext(), // Pass the context creation function
+    onError:
+      process.env.NODE_ENV === 'development'
+        ? ({ path, error }) => {
+            console.error(
+              `❌ tRPC failed on ${path ?? '<no-path>'}: ${error.message}`,
+            );
+          }
+        : undefined,
+  });
+
+// Expose the handler for GET and POST requests as per Next.js App Router conventions
+export { handler as GET, handler as POST };

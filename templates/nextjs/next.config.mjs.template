@@ -1,0 +1,18 @@
+/** @type {import('next').NextConfig} */
+const nextConfig = {
+  reactStrictMode: true,
+  // Add other Next.js configurations here as needed by your 'went' stack
+  // For example:
+  // images: {
+  //   remotePatterns: [
+  //     {
+  //       protocol: 'https',
+  //       hostname: 'example.com',
+  //       port: '',
+  //       pathname: '/images/**',
+  //     },
+  //   ],
+  // },
+};
+
+export default nextConfig;

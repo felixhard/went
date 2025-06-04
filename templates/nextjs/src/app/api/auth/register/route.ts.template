@@ -1,0 +1,119 @@
+import { hash } from "bcrypt";
+import { NextResponse } from "next/server";
+
+import { db } from "@/lib/db";
+import { sendEmail } from "@/lib/email";
+import { WelcomeEmail } from "@/emails/WelcomeEmail";
+
+export async function POST(req: Request) {
+  try {
+    const { name, email, password } = await req.json();
+
+    // Validate the input
+    if (!name || !email || !password) {
+      return NextResponse.json(
+        { message: "Missing required fields" },
+        { status: 400 }
+      );
+    }
+
+    // Check if user already exists
+    const existingUser = await db.user.findUnique({
+      where: {
+        email,
+      },
+    });
+
+    if (existingUser) {
+      return NextResponse.json(
+        { message: "User with this email already exists" },
+        { status: 409 }
+      );
+    }
+
+    // Hash the password
+    const hashedPassword = await hash(password, 10);
+
+    let newUser;
+    
+    try {
+      // Create the user - try with password field first
+      newUser = await db.user.create({
+        data: {
+          name,
+          email,
+          password: hashedPassword,
+        },
+      });
+      
+      // Send welcome email
+      try {
+        await sendEmail({
+          to: email,
+          subject: 'Welcome to {{projectName}}!',
+          react: WelcomeEmail({ userName: name, projectName: process.env.PROJECT_NAME || "{{projectName}}" }),
+        });
+      } catch (emailError) {
+        console.error("Failed to send welcome email:", emailError);
+        // Don't block registration if email fails
+      }
+      
+      // Return the user without the password
+      const { password: _, ...userWithoutPassword } = newUser;
+
+      return NextResponse.json(
+        {
+          user: userWithoutPassword,
+          message: "User created successfully",
+        },
+        { status: 201 }
+      );
+    } catch (error: any) {
+      // If error contains "Unknown argument `password`", it means the password field doesn't exist
+      if (error.message && error.message.includes("Unknown argument `password`")) {
+        console.warn("Password field not found in User model. Creating user without password field.");
+        
+        // Create user without password field
+        newUser = await db.user.create({
+          data: {
+            name,
+            email,
+          },
+        });
+
+        // Send welcome email
+        try {
+          await sendEmail({
+            to: email,
+            subject: 'Welcome to {{projectName}}!',
+            react: WelcomeEmail({ userName: name, projectName: process.env.PROJECT_NAME || "{{projectName}}" }),
+          });
+        } catch (emailError) {
+          console.error("Failed to send welcome email:", emailError);
+          // Don't block registration if email fails
+        }
+
+        // Store password in a separate way if needed
+        // This is a placeholder for a custom solution
+        // You could create a separate table for passwords or use another authentication method
+
+        return NextResponse.json(
+          {
+            user: newUser,
+            message: "User created successfully, but password field is not in the database schema. Please run 'npx prisma migrate dev' to update your schema.",
+          },
+          { status: 201 }
+        );
+      }
+      
+      // If it's another error, rethrow it
+      throw error;
+    }
+  } catch (error) {
+    console.error("Registration error:", error);
+    return NextResponse.json(
+      { message: "Something went wrong" },
+      { status: 500 }
+    );
+  }
+} 
