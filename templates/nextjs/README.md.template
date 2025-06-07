@@ -1,0 +1,94 @@
+# MyApp
+
+This is a full-stack Next.js application built with the **Went** stack, featuring authentication, database integration, and modern UI components.
+
+## Tech Stack
+
+- **Next.js 15** - React framework with App Router
+- **NextAuth.js v5** - Authentication with credentials provider
+- **Prisma** - Database ORM with PostgreSQL
+- **tRPC** - End-to-end typesafe APIs
+- **Tailwind CSS v4** - Utility-first CSS framework
+- **shadcn/ui** - Beautiful UI components
+- **Resend** - Email service for password resets
+
+## Getting Started
+
+1. **Set up your database connection:**
+   ```bash
+   # Update DATABASE_URL in .env file with your PostgreSQL connection string
+   ```
+
+2. **Run database migrations:**
+   ```bash
+   went db migrate init
+   ```
+
+3. **Start the development server:**
+   ```bash
+   npm run dev
+   ```
+
+4. **Open [http://localhost:3000](http://localhost:3000)** to see your application.
+
+## Features
+
+- ✅ User authentication (login/signup)
+- ✅ Google OAuth integration (optional)
+- ✅ Welcome emails for new users
+- ✅ Password reset with email
+- ✅ Protected dashboard
+- ✅ User profile management
+- ✅ Type-safe API with tRPC
+- ✅ Database integration with Prisma
+- ✅ Modern UI with Tailwind CSS
+
+## Environment Variables
+
+Make sure to configure these in your `.env` file:
+
+- `DATABASE_URL` - Your PostgreSQL connection string
+- `AUTH_SECRET` - Already generated for NextAuth.js
+- `RESEND_API_KEY` - (Optional) For password reset and welcome emails
+- `NEXTAUTH_URL` - Your app URL (defaults to localhost:3000)
+
+### Optional: Google OAuth
+
+To enable Google sign-in, add these environment variables:
+
+- `GOOGLE_CLIENT_ID` - Your Google OAuth client ID
+- `GOOGLE_CLIENT_SECRET` - Your Google OAuth client secret
+
+**Setup Google OAuth:**
+
+1. Go to [Google Cloud Console](https://console.developers.google.com/)
+2. Create a new project or select existing one
+3. Enable the Google+ API
+4. Go to "Credentials" → "Create Credentials" → "OAuth 2.0 Client IDs"
+5. Set application type to "Web application"
+6. Add authorized redirect URIs:
+   - `http://localhost:3000/api/auth/callback/google` (development)
+   - `https://yourdomain.com/api/auth/callback/google` (production)
+7. Copy the Client ID and Client Secret to your `.env` file
+
+When configured, Google sign-in buttons will automatically appear on login/signup forms.
+
+## Database
+
+To seed your database with initial data:
+
+```bash
+npm run db:seed
+```
+
+## Customization
+
+Replace all instances of "MyApp" throughout the codebase with your actual application name.
+
+## Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [NextAuth.js Documentation](https://authjs.dev)
+- [Prisma Documentation](https://www.prisma.io/docs)
+- [tRPC Documentation](https://trpc.io/docs)
+- [Tailwind CSS Documentation](https://tailwindcss.com/docs)

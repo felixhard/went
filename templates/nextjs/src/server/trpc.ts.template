@@ -1,0 +1,35 @@
+import { initTRPC } from '@trpc/server'
+import { prisma } from '@/lib/prisma'
+import { auth } from '@/auth'
+import type { Session } from 'next-auth'
+
+interface CreateContextOptions {
+  session: Session | null
+}
+
+export const createTRPCContext = async (): Promise<CreateContextOptions> => {
+  const session = await auth()
+  
+  return {
+    session,
+  }
+}
+
+const t = initTRPC.context<typeof createTRPCContext>().create()
+
+export const router = t.router
+export const publicProcedure = t.procedure
+export const protectedProcedure = t.procedure.use(({ ctx, next }) => {
+  if (!ctx.session || !ctx.session.user) {
+    throw new Error('UNAUTHORIZED')
+  }
+  return next({
+    ctx: {
+      ...ctx,
+      session: { ...ctx.session, user: ctx.session.user },
+    },
+  })
+})
+
+// Export the prisma instance for use in procedures
+export { prisma } 

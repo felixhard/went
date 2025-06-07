@@ -1,0 +1,23 @@
+/**
+ * Check if Google OAuth is configured
+ */
+export function isGoogleOAuthEnabled(): boolean {
+  return !!(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET)
+}
+
+/**
+ * Get available OAuth providers
+ */
+export function getAvailableOAuthProviders() {
+  const providers = []
+  
+  if (isGoogleOAuthEnabled()) {
+    providers.push({
+      id: 'google',
+      name: 'Google',
+      icon: '🔍' // You can replace with actual icon component
+    })
+  }
+  
+  return providers
+} 

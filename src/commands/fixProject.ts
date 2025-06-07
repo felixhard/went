@@ -4,6 +4,12 @@ import { execSync } from 'child_process';
 import chalk from 'chalk';
 import ora from 'ora';
 
+// Constants for template placeholders (shared with newProject.ts)
+const TEMPLATE_PLACEHOLDERS = {
+    PROJECT_NAME: '{{projectName}}',
+    AUTH_SECRET: 'PLACEHOLDER_WILL_BE_REPLACED'
+} as const;
+
 /**
  * Fixes common issues in a project
  */
@@ -22,14 +28,14 @@ export async function handleFixProjectCommand() {
     // Clean TypeScript cache
     cleanTypeScriptCache(projectPath);
     
-    // Fix missing worker files
-    fixMissingWorkerFiles(projectPath);
-    
     // Fix tsconfig.json
     fixTsConfig(projectPath);
     
     // Clean Next.js cache
     cleanNextCache(projectPath);
+    
+    // Check for missing environment files
+    checkEnvironmentFiles(projectPath);
     
     mainSpinner.succeed(chalk.green('Project analysis complete'));
     console.log(chalk.bold.green('\n✅ Project fixes applied successfully!\n'));
@@ -106,44 +112,43 @@ function cleanNextCache(projectPath: string) {
 }
 
 /**
- * Creates worker files if they don't exist
+ * Checks for missing environment files and suggests fixes
  */
-function fixMissingWorkerFiles(projectPath: string) {
+function checkEnvironmentFiles(projectPath: string) {
   const spinner = ora({
-    text: 'Checking for missing worker files...',
+    text: 'Checking environment configuration...',
     color: 'cyan',
   }).start();
   
-  const workerFiles = [
-    { 
-      path: 'src/server/workers/exampleWorker.ts', 
-      content: '// Example worker file\nexport default function exampleWorker() {\n  console.log("Example worker running");\n}\n' 
-    },
-    { 
-      path: 'src/server/workers/anotherWorker.ts', 
-      content: '// Another worker file\nexport default function anotherWorker() {\n  console.log("Another worker running");\n}\n' 
-    }
-  ];
-  
-  let filesCreated = 0;
-  
   try {
-    workerFiles.forEach(file => {
-      const filePath = path.join(projectPath, file.path);
-      if (!fs.existsSync(filePath)) {
-        fs.ensureDirSync(path.dirname(filePath));
-        fs.writeFileSync(filePath, file.content);
-        filesCreated++;
-      }
-    });
+    const envPath = path.join(projectPath, '.env');
+    const envExamplePath = path.join(projectPath, '.env.example');
     
-    if (filesCreated > 0) {
-      spinner.succeed(chalk.green(`Created ${filesCreated} missing worker files`));
+    if (!fs.existsSync(envPath)) {
+      if (fs.existsSync(envExamplePath)) {
+        // Copy .env.example to .env if .env doesn't exist
+        fs.copyFileSync(envExamplePath, envPath);
+        spinner.succeed(chalk.green('Created .env file from .env.example'));
+        console.log(chalk.yellow('  ⚠️  Remember to update your .env file with actual values'));
+        console.log(chalk.dim('  💡 Generate AUTH_SECRET with: openssl rand -base64 32'));
+      } else {
+        spinner.warn(chalk.yellow('No .env file found'));
+        console.log(chalk.dim('  💡 Create a .env file with your environment variables'));
+        console.log(chalk.dim('  💡 Generate AUTH_SECRET with: openssl rand -base64 32'));
+      }
     } else {
-      spinner.succeed(chalk.green('All worker files exist'));
+      // Check if .env file has AUTH_SECRET
+      const envContent = fs.readFileSync(envPath, 'utf-8');
+      if (!envContent.includes('AUTH_SECRET') || envContent.includes(TEMPLATE_PLACEHOLDERS.AUTH_SECRET)) {
+        spinner.warn(chalk.yellow('AUTH_SECRET missing or not configured in .env'));
+        console.log(chalk.dim('  💡 Generate AUTH_SECRET with: openssl rand -base64 32'));
+        console.log(chalk.dim('  💡 Add it to your .env file: AUTH_SECRET="your_generated_secret"'));
+      } else {
+        spinner.succeed(chalk.green('Environment files are properly configured'));
+      }
     }
   } catch (error) {
-    spinner.fail(chalk.red('Failed to create worker files'));
+    spinner.fail(chalk.red('Failed to check environment files'));
     console.error(chalk.dim('This is non-critical, continuing...'));
   }
 }
@@ -166,39 +171,6 @@ function fixTsConfig(projectPath: string) {
   try {
     const tsconfig = JSON.parse(fs.readFileSync(tsconfigPath, 'utf-8'));
     let modified = false;
-    
-    // Update include pattern
-    if (tsconfig.include) {
-      // Remove problematic wildcards
-      const hasWildcardTs = tsconfig.include.some((pattern: string) => pattern === '**/*.ts');
-      const hasWildcardTsx = tsconfig.include.some((pattern: string) => pattern === '**/*.tsx');
-      
-      if (hasWildcardTs || hasWildcardTsx) {
-        modified = true;
-        
-        // Remove wildcards
-        tsconfig.include = tsconfig.include.filter((pattern: string) => 
-          pattern !== '**/*.ts' && pattern !== '**/*.tsx'
-        );
-        
-        // Add specific directories
-        const specificDirs = [
-          "src/app/**/*.{ts,tsx}",
-          "src/components/**/*.{ts,tsx}",
-          "src/lib/**/*.{ts,tsx}",
-          "src/types/**/*.{ts,tsx}",
-          "src/server/api/**/*.{ts,tsx}",
-          "src/server/lib/**/*.{ts,tsx}",
-          "src/server/jobs/**/*.{ts,tsx}"
-        ];
-        
-        specificDirs.forEach(dir => {
-          if (!tsconfig.include.includes(dir)) {
-            tsconfig.include.push(dir);
-          }
-        });
-      }
-    }
     
     // Update exclude pattern
     if (!tsconfig.exclude) {
@@ -226,12 +198,6 @@ function fixTsConfig(projectPath: string) {
         modified = true;
       }
     });
-    
-    // Exclude workers directory
-    if (!tsconfig.exclude.includes('src/server/workers/**/*.ts')) {
-      tsconfig.exclude.push('src/server/workers/**/*.ts');
-      modified = true;
-    }
     
     // Add helpful compiler options
     if (!tsconfig.compilerOptions) {

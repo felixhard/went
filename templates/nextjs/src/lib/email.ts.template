@@ -1,49 +1,265 @@
-import { Resend } from 'resend';
-import React from 'react';
+import { Resend } from 'resend'
 
-if (!process.env.RESEND_API_KEY) {
-  console.warn("RESEND_API_KEY is not set. Email sending will be disabled.");
+// Initialize Resend only if API key is provided
+const resend = process.env.RESEND_API_KEY ? new Resend(process.env.RESEND_API_KEY) : null
+
+export interface EmailOptions {
+  to: string
+  subject: string
+  html: string
 }
 
-export const resend = new Resend(process.env.RESEND_API_KEY);
-
-interface EmailOptions {
-  to: string | string[];
-  subject: string;
-  react: React.ReactElement; // For React Email component
-  from?: string; // Optional, can be configured in Resend dashboard
-  text?: string; // Optional fallback or alternative
-}
-
-export async function sendEmail({ to, subject, react, from, text }: EmailOptions) {
-  if (!process.env.RESEND_API_KEY) {
-    console.error("Attempted to send email without RESEND_API_KEY. Aborting.");
-    // In development, you might want to log the email content instead of sending
-    if (process.env.NODE_ENV === 'development') {
-      console.log("--- Email Sending Skipped (No API Key) ---");
-      console.log("To:", to);
-      console.log("Subject:", subject);
-      console.log("React Component:", react.type.name || 'UnnamedReactEmailComponent');
-      console.log("--- End Email ---");
-      return { data: null, error: { message: "Email sending skipped in dev (no API key)" }};
-    }
-    throw new Error("RESEND_API_KEY is not configured.");
+export async function sendEmail({ to, subject, html }: EmailOptions) {
+  // Check if email service is configured
+  if (!resend || !process.env.RESEND_API_KEY) {
+    console.warn('Email service not configured. RESEND_API_KEY is missing.')
+    throw new Error('Email service not configured. Please add RESEND_API_KEY to your environment variables.')
   }
-
-  const defaultFrom = process.env.DEFAULT_EMAIL_FROM || 'onboarding@resend.dev'; // Example, should be configured by user
 
   try {
-    const data = await resend.emails.send({
-      from: from || defaultFrom,
-      to,
+    const { data, error } = await resend.emails.send({
+      from: 'MyApp <onboarding@resend.dev>', // Replace with your actual domain
+      to: [to],
       subject,
-      react,
-      text, // Optional
-    });
-    console.log("Email sent successfully:", data);
-    return { data, error: null };
+      html,
+    })
+
+    if (error) {
+      console.error('Email sending error:', error)
+      throw new Error('Failed to send email')
+    }
+
+    return { success: true, data }
   } catch (error) {
-    console.error("Error sending email:", error);
-    return { data: null, error };
+    console.error('Email service error:', error)
+    throw new Error('Email service unavailable')
   }
+}
+
+export function generatePasswordResetEmail(resetUrl: string, userEmail: string) {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Reset Your Password - MyApp</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+          }
+          .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 10px;
+          }
+          .button {
+            display: inline-block;
+            background-color: #000 !important;
+            color: #ffffff !important;
+            padding: 12px 24px;
+            text-decoration: none !important;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 20px 0;
+          }
+          .button:visited {
+            color: #ffffff !important;
+          }
+          .button:hover {
+            color: #ffffff !important;
+            background-color: #333 !important;
+          }
+          .button:active {
+            color: #ffffff !important;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+          }
+          .warning {
+            background-color: #fff3cd;
+            border: 1px solid #ffeaa7;
+            border-radius: 4px;
+            padding: 15px;
+            margin: 20px 0;
+            color: #856404;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">MyApp</div>
+            <h1>Reset Your Password</h1>
+          </div>
+          
+          <p>Hello,</p>
+          
+          <p>We received a request to reset the password for your account associated with <strong>${userEmail}</strong>.</p>
+          
+          <p>Click the button below to reset your password:</p>
+          
+          <div style="text-align: center;">
+            <a href="${resetUrl}" class="button" style="color: #ffffff !important; text-decoration: none !important; background-color: #000 !important;">Reset Password</a>
+          </div>
+          
+          <div class="warning">
+            <strong>Security Notice:</strong> This link will expire in 1 hour for your security. If you didn't request this password reset, please ignore this email.
+          </div>
+          
+          <p>If the button doesn't work, you can copy and paste this link into your browser:</p>
+          <p style="word-break: break-all; color: #666; font-size: 14px;">${resetUrl}</p>
+          
+          <div class="footer">
+            <p>This email was sent by MyApp. If you have any questions, please contact our support team.</p>
+            <p>© ${new Date().getFullYear()} MyApp. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
+}
+
+export function generateWelcomeEmail(userName: string, userEmail: string) {
+  return `
+    <!DOCTYPE html>
+    <html>
+      <head>
+        <meta charset="utf-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>Welcome to MyApp!</title>
+        <style>
+          body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+            background-color: #f9f9f9;
+          }
+          .container {
+            background-color: white;
+            padding: 40px;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+          }
+          .header {
+            text-align: center;
+            margin-bottom: 30px;
+          }
+          .logo {
+            font-size: 24px;
+            font-weight: bold;
+            color: #000;
+            margin-bottom: 10px;
+          }
+          .button {
+            display: inline-block;
+            background-color: #000 !important;
+            color: #ffffff !important;
+            padding: 12px 24px;
+            text-decoration: none !important;
+            border-radius: 6px;
+            font-weight: 500;
+            margin: 20px 0;
+          }
+          .button:visited {
+            color: #ffffff !important;
+          }
+          .button:hover {
+            color: #ffffff !important;
+            background-color: #333 !important;
+          }
+          .button:active {
+            color: #ffffff !important;
+          }
+          .footer {
+            margin-top: 30px;
+            padding-top: 20px;
+            border-top: 1px solid #eee;
+            font-size: 14px;
+            color: #666;
+            text-align: center;
+          }
+          .feature-list {
+            background-color: #f8f9fa;
+            border-radius: 6px;
+            padding: 20px;
+            margin: 20px 0;
+          }
+          .feature-item {
+            margin: 10px 0;
+            padding-left: 20px;
+            position: relative;
+          }
+          .feature-item:before {
+            content: "✓";
+            position: absolute;
+            left: 0;
+            color: #28a745;
+            font-weight: bold;
+          }
+        </style>
+      </head>
+      <body>
+        <div class="container">
+          <div class="header">
+            <div class="logo">MyApp</div>
+            <h1>Welcome to MyApp!</h1>
+          </div>
+          
+          <p>Hello ${userName || 'there'},</p>
+          
+          <p>Welcome to MyApp! We're excited to have you on board. Your account has been successfully created with the email address <strong>${userEmail}</strong>.</p>
+          
+          <div class="feature-list">
+            <h3 style="margin-top: 0; color: #000;">What you can do now:</h3>
+            <div class="feature-item">Access your personalized dashboard</div>
+            <div class="feature-item">Manage your profile and settings</div>
+            <div class="feature-item">Explore all the features we have to offer</div>
+            <div class="feature-item">Get support from our team when you need it</div>
+          </div>
+          
+          <p>Ready to get started? Click the button below to access your dashboard:</p>
+          
+          <div style="text-align: center;">
+            <a href="${process.env.NEXTAUTH_URL || 'http://localhost:3000'}/dashboard" class="button" style="color: #ffffff !important; text-decoration: none !important; background-color: #000 !important;">Go to Dashboard</a>
+          </div>
+          
+          <p>If you have any questions or need help getting started, don't hesitate to reach out to our support team.</p>
+          
+          <p>Thanks for joining us!</p>
+          <p>The MyApp Team</p>
+          
+          <div class="footer">
+            <p>This email was sent by MyApp. If you have any questions, please contact our support team.</p>
+            <p>© ${new Date().getFullYear()} MyApp. All rights reserved.</p>
+          </div>
+        </div>
+      </body>
+    </html>
+  `
 } 

@@ -3,7 +3,6 @@
 import { Command } from 'commander';
 import { generatePrisma } from './commands/generatePrisma';
 import { handleNewProjectCommand } from './commands/newProject';
-import { handleGenerateJobsCommand } from './commands/generateJobs';
 import { handleFixProjectCommand } from './commands/fixProject';
 import { handleDbMigrate } from './commands/dbMigrate';
 
@@ -54,19 +53,6 @@ program
     await handleNewProjectCommand();
   });
 
-// Command for generating jobs types and APIs
-const jobsCommand = program.command('jobs');
-jobsCommand
-  .description('Jobs-related commands');
-
-jobsCommand
-  .command('generate')
-  .alias('gen')
-  .description('Generates TypeScript types and APIs for jobs defined in jobs.went.json.')
-  .action(async () => {
-    await handleGenerateJobsCommand();
-  });
-
 // Command for fixing common issues in existing projects
 program
   .command('fix')
@@ -79,10 +65,6 @@ program
 program
   .command('prisma:generate', { hidden: true })
   .action(async () => await generatePrisma());
-
-program
-  .command('jobs:generate', { hidden: true })
-  .action(async () => await handleGenerateJobsCommand());
 
 program
   .command('db:migrate [name]', { hidden: true })

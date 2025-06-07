@@ -1,0 +1,146 @@
+"use client"
+
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { SignOutButton } from "@/components/sign-out-button"
+import { cn } from "@/lib/utils"
+import Link from "next/link"
+
+interface User {
+  id?: string
+  name?: string | null
+  email?: string | null
+}
+
+interface DashboardClientProps {
+  user: User
+}
+
+export function DashboardClient({ user }: DashboardClientProps) {
+  return (
+    <div className="min-h-screen flex flex-col bg-white">
+      {/* Header */}
+      <header className="border-b border-gray-200">
+        <div className="container mx-auto px-4 py-4">
+          <div className="flex justify-between items-center">
+            <Link href="/" className="hover:opacity-80 transition-opacity">
+              <h1 className={cn(
+                "text-2xl font-bold text-black",
+                "font-[family-name:var(--font-geist-sans)]"
+              )}>
+                MyApp
+              </h1>
+            </Link>
+            <div className="flex items-center gap-4">
+              <span className={cn(
+                "text-sm text-gray-600",
+                "font-[family-name:var(--font-geist-mono)]"
+              )}>
+                Welcome, {user.name || user.email}
+              </span>
+              <SignOutButton />
+            </div>
+          </div>
+        </div>
+      </header>
+
+      {/* Main Content */}
+      <main className="flex-1 container mx-auto px-4 py-8">
+        <div className="mb-8">
+          <h2 className={cn(
+            "text-3xl font-bold text-black mb-2",
+            "font-[family-name:var(--font-geist-sans)]"
+          )}>
+            Dashboard
+          </h2>
+          <p className={cn(
+            "text-gray-600",
+            "font-[family-name:var(--font-geist-mono)] text-sm"
+          )}>
+            Manage your account and view your information
+          </p>
+        </div>
+
+        <Card className="bg-white border border-gray-200 shadow-lg">
+          <CardHeader className="pb-6">
+            <CardTitle className={cn(
+              "text-xl font-bold text-black",
+              "font-[family-name:var(--font-geist-sans)]"
+            )}>
+              Account Information
+            </CardTitle>
+            <CardDescription className={cn(
+              "text-gray-600",
+              "font-[family-name:var(--font-geist-mono)] text-sm"
+            )}>
+              Your current account details and settings
+            </CardDescription>
+          </CardHeader>
+          
+          <CardContent>
+            <dl className="grid grid-cols-1 gap-6 sm:grid-cols-2">
+              <div className="bg-gray-50 px-4 py-5 rounded-lg border border-gray-200">
+                <dt className={cn(
+                  "text-sm font-medium text-gray-600 mb-1",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  Full Name
+                </dt>
+                <dd className={cn(
+                  "text-sm text-black font-medium",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  {user.name || "Not provided"}
+                </dd>
+              </div>
+              
+              <div className="bg-gray-50 px-4 py-5 rounded-lg border border-gray-200">
+                <dt className={cn(
+                  "text-sm font-medium text-gray-600 mb-1",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  Email Address
+                </dt>
+                <dd className={cn(
+                  "text-sm text-black font-medium",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  {user.email}
+                </dd>
+              </div>
+              
+              <div className="bg-gray-50 px-4 py-5 rounded-lg border border-gray-200">
+                <dt className={cn(
+                  "text-sm font-medium text-gray-600 mb-1",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  User ID
+                </dt>
+                <dd className={cn(
+                  "text-sm text-black font-medium break-all",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  {user.id}
+                </dd>
+              </div>
+              
+              <div className="bg-gray-50 px-4 py-5 rounded-lg border border-gray-200">
+                <dt className={cn(
+                  "text-sm font-medium text-gray-600 mb-1",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  Account Status
+                </dt>
+                <dd className={cn(
+                  "text-sm text-green-700 font-medium",
+                  "font-[family-name:var(--font-geist-mono)]"
+                )}>
+                  ✓ Active
+                </dd>
+              </div>
+            </dl>
+          </CardContent>
+        </Card>
+      </main>
+    </div>
+  )
+} 

@@ -1,0 +1,12 @@
+import { NextResponse } from "next/server"
+
+export function middleware() {
+  // For now, let's just pass through all requests
+  // Auth protection will be handled at the page level
+  return NextResponse.next()
+}
+
+// See https://nextjs.org/docs/app/building-your-application/routing/middleware#matcher
+export const config = {
+  matcher: ['/((?!api|_next/static|_next/image|favicon.ico).*)'],
+} 

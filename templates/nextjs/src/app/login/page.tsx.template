@@ -1,61 +1,31 @@
-import { Metadata } from "next";
-import Link from "next/link";
-import { redirect } from "next/navigation";
-import { auth } from "@/lib/auth";
-import { use } from "react";
+import Link from "next/link"
+import { LoginForm } from "@/components/login-form"
+import { cn } from "@/lib/utils"
 
-import { AuthForm } from "@/components/auth/auth-form";
-import { authAppearance } from "@/lib/auth-appearance";
-
-export const metadata: Metadata = {
-  title: "Login",
-  description: "Login to your account",
-};
-
-export default async function LoginPage({
-  searchParams,
-}: {
-  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
-}) {
-  const session = await auth();
-
-  if (session) {
-    redirect("/");
-  }
-
-  const resolvedParams = use(searchParams);
-  const success = resolvedParams?.success ? resolvedParams.success : null;
-
+export default function LoginPage() {
   return (
-    <div className="container flex h-screen w-screen flex-col items-center justify-center">
-      <div className="mx-auto flex w-full flex-col justify-center space-y-6 sm:w-[350px] font-bold shadow-lg p-6 rounded-lg bg-white">
-        <div className="flex flex-col space-y-2 text-center">
-          <h1 className="text-2xl font-bold tracking-tight">
-            Log in to your account
-          </h1>
-          <p className="text-sm text-muted-foreground font-bold">
-            Enter your email and password to continue
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
+      <div className="w-full max-w-md">
+        <LoginForm />
+        
+        <div className="text-center mt-6">
+          <p className={cn(
+            "text-sm text-gray-600",
+            "font-[family-name:var(--font-geist-mono)]"
+          )}>
+            Don&apos;t have an account?{" "}
+            <Link 
+              href="/signup" 
+              className={cn(
+                "text-black hover:underline font-medium transition-all",
+                "font-[family-name:var(--font-geist-sans)]"
+              )}
+            >
+              Sign up
+            </Link>
           </p>
-          {success && (
-            <div className="mt-2 p-2 bg-green-50 text-green-700 text-sm rounded-md font-bold">
-              {typeof success === 'string' ? success : 'Account created successfully'}
-            </div>
-          )}
         </div>
-        <AuthForm 
-          mode="login"
-          appearance={authAppearance}
-        />
-        <p className="px-8 text-center text-sm text-muted-foreground font-bold">
-          Don&apos;t have an account?{" "}
-          <Link
-            href="/register"
-            className="underline underline-offset-4 hover:text-primary font-bold"
-          >
-            Sign up
-          </Link>
-        </p>
       </div>
     </div>
-  );
-} 
+  )
+}

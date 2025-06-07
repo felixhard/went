@@ -1,0 +1,15 @@
+import { redirect } from "next/navigation"
+import { auth } from "@/auth"
+import { DashboardClient } from "@/components/dashboard-client"
+
+export default async function DashboardPage() {
+  const session = await auth()
+
+  // If the user is not logged in, redirect to the login page
+  if (!session?.user) {
+    redirect("/login")
+  }
+
+  // Pass session data to client component
+  return <DashboardClient user={session.user} />
+} 

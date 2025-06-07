@@ -1,0 +1,35 @@
+import { PrismaClient } from '../src/generated/prisma'
+import { saltAndHashPassword } from '../src/utils/password'
+
+const prisma = new PrismaClient()
+
+async function main() {
+  // Add your seed data here
+  console.log('Database seeding started...')
+  
+  // Example: Create an admin user
+  // Uncomment and modify as needed
+  /*
+  const adminPassword = await saltAndHashPassword('admin123')
+  const adminUser = await prisma.user.create({
+    data: {
+      email: 'admin@myapp.com',
+      name: 'Admin User',
+      passwordHash: adminPassword,
+    },
+  })
+  console.log('Created admin user:', adminUser)
+  */
+  
+  console.log('Database seeding completed!')
+}
+
+main()
+  .then(async () => {
+    await prisma.$disconnect()
+  })
+  .catch(async (e) => {
+    console.error(e)
+    await prisma.$disconnect()
+    process.exit(1)
+  }) 

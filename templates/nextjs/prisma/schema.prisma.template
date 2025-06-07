@@ -1,40 +1,44 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
-  provider = "postgresql" // Or your default choice, e.g., "mysql", "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
-// Default User model
 model User {
   id            String    @id @default(cuid())
   name          String?
-  email         String?   @unique
-  emailVerified DateTime?
-  image         String?
-  password      String?
+  email         String    @unique
+  passwordHash  String
   createdAt     DateTime  @default(now())
   updatedAt     DateTime  @updatedAt
 
-  // Add your custom fields here
-  
-  // Auth related models
-  accounts      Account[]
-  sessions      Session[]
-  passwordResetTokens PasswordResetToken[]
+  // Password reset fields
+  resetToken    String?   @unique
+  resetTokenExpiry DateTime?
+
+  // NextAuth.js relations
+  accounts Account[]
+  sessions Session[]
+
+  @@map("users")
 }
 
 model Account {
   id                String  @id @default(cuid())
-  userId            String
+  userId            String  @map("user_id")
   type              String
   provider          String
-  providerAccountId String
+  providerAccountId String  @map("provider_account_id")
   refresh_token     String? @db.Text
   access_token      String? @db.Text
   expires_at        Int?
@@ -46,14 +50,17 @@ model Account {
   user User @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@map("accounts")
 }
 
 model Session {
   id           String   @id @default(cuid())
-  sessionToken String   @unique
-  userId       String
+  sessionToken String   @unique @map("session_token")
+  userId       String   @map("user_id")
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
 }
 
 model VerificationToken {
@@ -62,17 +69,5 @@ model VerificationToken {
   expires    DateTime
 
   @@unique([identifier, token])
-}
-
-model PasswordResetToken {
-  id        String   @id @default(cuid())
-  email     String
-  token     String   @unique
-  expiresAt DateTime
-  createdAt DateTime @default(now())
-  userId    String?
-  user      User?    @relation(fields: [userId], references: [id], onDelete: Cascade)
-
-  @@index([email])
-  @@index([token])
+  @@map("verificationtokens")
 }

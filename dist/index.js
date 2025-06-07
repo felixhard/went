@@ -4,7 +4,6 @@ Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
 const generatePrisma_1 = require("./commands/generatePrisma");
 const newProject_1 = require("./commands/newProject");
-const generateJobs_1 = require("./commands/generateJobs");
 const fixProject_1 = require("./commands/fixProject");
 const dbMigrate_1 = require("./commands/dbMigrate");
 const program = new commander_1.Command();
@@ -46,17 +45,6 @@ program
     .action(async () => {
     await (0, newProject_1.handleNewProjectCommand)();
 });
-// Command for generating jobs types and APIs
-const jobsCommand = program.command('jobs');
-jobsCommand
-    .description('Jobs-related commands');
-jobsCommand
-    .command('generate')
-    .alias('gen')
-    .description('Generates TypeScript types and APIs for jobs defined in jobs.went.json.')
-    .action(async () => {
-    await (0, generateJobs_1.handleGenerateJobsCommand)();
-});
 // Command for fixing common issues in existing projects
 program
     .command('fix')
@@ -68,9 +56,6 @@ program
 program
     .command('prisma:generate', { hidden: true })
     .action(async () => await (0, generatePrisma_1.generatePrisma)());
-program
-    .command('jobs:generate', { hidden: true })
-    .action(async () => await (0, generateJobs_1.handleGenerateJobsCommand)());
 program
     .command('db:migrate [name]', { hidden: true })
     .action(async (name) => await (0, dbMigrate_1.handleDbMigrate)(name));

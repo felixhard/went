@@ -1,0 +1,48 @@
+"use client"
+
+import { signOut } from "next-auth/react"
+import { useRouter } from "next/navigation"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+import { useState } from "react"
+
+export function SignOutButton() {
+  const router = useRouter()
+  const [isLoading, setIsLoading] = useState(false)
+
+  const handleSignOut = async () => {
+    setIsLoading(true)
+    try {
+      await signOut({ 
+        redirect: false // Don't use NextAuth's redirect, we'll handle it ourselves
+      })
+      // Redirect to home page after successful sign out
+      router.push("/")
+      router.refresh()
+    } catch (error) {
+      console.error("Sign out error:", error)
+      setIsLoading(false)
+    }
+  }
+
+  return (
+    <Button 
+      onClick={handleSignOut}
+      disabled={isLoading}
+      variant="outline"
+      className={cn(
+        "bg-white border-gray-300 text-black hover:bg-gray-50",
+        "font-[family-name:var(--font-geist-sans)] font-medium",
+        "disabled:opacity-50 disabled:cursor-not-allowed"
+      )}
+    >
+      {isLoading ? (
+        <span className="font-[family-name:var(--font-geist-mono)] text-sm">
+          Signing out...
+        </span>
+      ) : (
+        "Sign Out"
+      )}
+    </Button>
+  )
+} 

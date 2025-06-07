@@ -1,13 +1,22 @@
 import type { Metadata } from "next";
-import { GeistSans } from "geist/font/sans";
-import { GeistMono } from "geist/font/mono";
+import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
-import TrpcProvider from "@/lib/trpc/Provider";
-import { AuthProvider } from "@/components/auth/auth-provider";
+import { AuthSessionProvider } from "@/components/session-provider";
+import { TRPCProvider } from "@/components/trpc-provider";
+
+const geistSans = Geist({
+  variable: "--font-geist-sans",
+  subsets: ["latin"],
+});
+
+const geistMono = Geist_Mono({
+  variable: "--font-geist-mono",
+  subsets: ["latin"],
+});
 
 export const metadata: Metadata = {
-  title: "My Went App",
-  description: "Built with the Went framework",
+  title: "MyApp",
+  description: "A full-stack application built with the Went stack",
 };
 
 export default function RootLayout({
@@ -16,13 +25,15 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`${GeistSans.variable} ${GeistMono.variable}`}>
-      <body className="min-h-screen bg-background text-foreground font-sans">
-        <AuthProvider>
-          <TrpcProvider>
+    <html lang="en">
+      <body
+        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+      >
+        <TRPCProvider>
+          <AuthSessionProvider>
             {children}
-          </TrpcProvider>
-        </AuthProvider>
+          </AuthSessionProvider>
+        </TRPCProvider>
       </body>
     </html>
   );

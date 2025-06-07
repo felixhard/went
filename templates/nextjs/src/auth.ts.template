@@ -1,0 +1,127 @@
+import NextAuth from "next-auth"
+import { ZodError } from "zod"
+import Credentials from "next-auth/providers/credentials"
+import Google from "next-auth/providers/google"
+import { signInSchema } from "@/lib/zod"
+import { getUserFromDb, getUserByEmail, createUserFromOAuth } from "@/utils/db"
+import { sendEmail, generateWelcomeEmail } from "@/lib/email"
+
+// Build providers array conditionally
+const providers = [
+    Credentials({
+        // You can specify which fields should be submitted, by adding keys to the `credentials` object.
+        // e.g. domain, username, password, 2FA token, etc.
+        credentials: {
+            email: {
+                type: "email",
+                label: "Email",
+                placeholder: "johndoe@gmail.com",
+            },
+            password: {
+                type: "password",
+                label: "Password",
+                placeholder: "*****",
+            },
+        },
+        authorize: async (credentials) => {
+            try {
+                let user = null
+
+                const { email, password } = await signInSchema.parseAsync(credentials)
+
+                // Verify user credentials (password verification is now handled in getUserFromDb)
+                user = await getUserFromDb(email, password)
+
+                if (!user) {
+                    throw new Error("Invalid credentials.")
+                }
+
+                // return JSON object with the user data
+                return user
+            } catch (error) {
+                if (error instanceof ZodError) {
+                    // Return `null` to indicate that the credentials are invalid
+                    return null
+                }
+                throw error
+            }
+        },
+    }),
+]
+
+// Add Google provider if environment variables are set
+if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
+    providers.push(
+        Google({
+            clientId: process.env.GOOGLE_CLIENT_ID,
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        })
+    )
+}
+
+export const { handlers, auth, signIn, signOut } = NextAuth({
+    providers,
+    callbacks: {
+        async signIn({ user, account, profile }) {
+            // Handle OAuth sign-in
+            if (account?.provider === "google" && user.email) {
+                try {
+                    // Check if user exists or create new one
+                    const result = await createUserFromOAuth(user.email, user.name || "")
+                    
+                    // Send welcome email for new users
+                    if (result.isNewUser) {
+                        try {
+                            await sendEmail({
+                                to: user.email,
+                                subject: 'Welcome to MyApp!',
+                                html: generateWelcomeEmail(user.name || "", user.email),
+                            })
+                            console.log(`Welcome email sent to ${user.email}`)
+                        } catch (emailError) {
+                            // Don't fail the sign-in if email fails
+                            console.error('Failed to send welcome email:', emailError)
+                        }
+                    }
+                    
+                    return true
+                } catch (error) {
+                    console.error("OAuth sign-in error:", error)
+                    return false
+                }
+            }
+            return true
+        },
+        async jwt({ token, user, account }) {
+            // Persist the user data to the token right after signin
+            if (user) {
+                token.id = user.id
+                token.name = user.name
+                token.email = user.email
+            }
+            
+            // For OAuth users, we need to get the user ID from the database
+            if (account?.provider === "google" && token.email) {
+                try {
+                    const dbUser = await getUserByEmail(token.email as string)
+                    if (dbUser) {
+                        token.id = dbUser.id
+                    }
+                } catch (error) {
+                    console.error("Error fetching OAuth user:", error)
+                }
+            }
+            
+            return token
+        },
+        async session({ session, token }) {
+            // Send properties to the client
+            if (token) {
+                session.user.id = token.id as string
+                session.user.name = token.name as string
+                session.user.email = token.email as string
+            }
+            return session
+        },
+    },
+}) 

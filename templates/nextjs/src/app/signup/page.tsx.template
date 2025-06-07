@@ -1,0 +1,31 @@
+import Link from "next/link"
+import { SignupForm } from "@/components/signup-form"
+import { cn } from "@/lib/utils"
+
+export default function SignupPage() {
+  return (
+    <div className="min-h-screen flex flex-col items-center justify-center bg-white px-4">
+      <div className="w-full max-w-md">
+        <SignupForm />
+        
+        <div className="text-center mt-6">
+          <p className={cn(
+            "text-sm text-gray-600",
+            "font-[family-name:var(--font-geist-mono)]"
+          )}>
+            Already have an account?{" "}
+            <Link 
+              href="/login" 
+              className={cn(
+                "text-black hover:underline font-medium transition-all",
+                "font-[family-name:var(--font-geist-sans)]"
+              )}
+            >
+              Sign in
+            </Link>
+          </p>
+        </div>
+      </div>
+    </div>
+  )
+} 
