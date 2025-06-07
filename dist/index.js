@@ -2,26 +2,25 @@
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
 const commander_1 = require("commander");
+const fs_1 = require("fs");
+const path_1 = require("path");
 const generatePrisma_1 = require("./commands/generatePrisma");
 const newProject_1 = require("./commands/newProject");
 const fixProject_1 = require("./commands/fixProject");
 const dbMigrate_1 = require("./commands/dbMigrate");
 const program = new commander_1.Command();
+// Read version from package.json
+const packageJsonPath = (0, path_1.join)(__dirname, '..', 'package.json');
+const packageJson = JSON.parse((0, fs_1.readFileSync)(packageJsonPath, 'utf8'));
 program
-    .version('0.0.1') // Consider reading from package.json later
+    .version(packageJson.version)
     .description('A CLI tool for generating Next.js projects with the "went" stack.');
 // Main command - if first argument is not a known command, treat it as project name
 program
     .argument('[project-name]', 'Name of the project to create')
     .action(async (projectName) => {
-    if (projectName) {
-        // If a project name is provided, create a new project
-        await (0, newProject_1.handleNewProjectCommand)(projectName);
-    }
-    else {
-        // If no project name, show help
-        program.outputHelp();
-    }
+    // Always create a new project, prompt for name if not provided
+    await (0, newProject_1.handleNewProjectCommand)(projectName);
 });
 program
     .command('hello')

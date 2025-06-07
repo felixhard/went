@@ -1,6 +1,8 @@
 #!/usr/bin/env node
 
 import { Command } from 'commander';
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { generatePrisma } from './commands/generatePrisma';
 import { handleNewProjectCommand } from './commands/newProject';
 import { handleFixProjectCommand } from './commands/fixProject';
@@ -8,21 +10,20 @@ import { handleDbMigrate } from './commands/dbMigrate';
 
 const program = new Command();
 
+// Read version from package.json
+const packageJsonPath = join(__dirname, '..', 'package.json');
+const packageJson = JSON.parse(readFileSync(packageJsonPath, 'utf8'));
+
 program
-  .version('0.0.1') // Consider reading from package.json later
+  .version(packageJson.version)
   .description('A CLI tool for generating Next.js projects with the "went" stack.');
 
 // Main command - if first argument is not a known command, treat it as project name
 program
   .argument('[project-name]', 'Name of the project to create')
   .action(async (projectName) => {
-    if (projectName) {
-      // If a project name is provided, create a new project
-      await handleNewProjectCommand(projectName);
-    } else {
-      // If no project name, show help
-      program.outputHelp();
-    }
+    // Always create a new project, prompt for name if not provided
+    await handleNewProjectCommand(projectName);
   });
 
 program
