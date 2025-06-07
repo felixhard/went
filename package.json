@@ -1,6 +1,6 @@
 {
   "name": "create-went-app",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A CLI tool for generating Next.js projects with authentication, database setup, and modern tooling",
   "main": "dist/index.js",
   "bin": {
