@@ -85,22 +85,35 @@ function copyAndProcessTemplate(templateDir, projectPath, projectName) {
     findTemplateFiles(projectPath);
     return authSecret;
 }
-async function handleNewProjectCommand() {
+async function handleNewProjectCommand(providedProjectName) {
     console.log(chalk_1.default.bold.blue('\nWent - Full-Stack Web Framework\n'));
-    const answers = await inquirer_1.default.prompt([
-        {
-            type: 'input',
-            name: 'projectName',
-            message: 'Project name:',
-            validate: isValidProjectName,
-        },
-    ]);
-    let projectName = answers.projectName.trim();
+    let projectName;
+    if (providedProjectName) {
+        // Use the provided project name and validate it
+        const validation = isValidProjectName(providedProjectName);
+        if (validation !== true) {
+            console.error(chalk_1.default.red(`Invalid project name: ${validation}`));
+            process.exit(1);
+        }
+        projectName = providedProjectName.trim();
+    }
+    else {
+        // Prompt for project name if not provided
+        const answers = await inquirer_1.default.prompt([
+            {
+                type: 'input',
+                name: 'projectName',
+                message: 'Project name:',
+                validate: isValidProjectName,
+            },
+        ]);
+        projectName = answers.projectName.trim();
+    }
     const reservedNames = ["test", "tests", "example", "temp", "tmp"];
     if (reservedNames.includes(projectName.toLowerCase())) {
         const timestamp = Math.floor(Date.now() / 1000).toString().slice(-6);
         projectName = `${projectName}-${timestamp}`;
-        console.log(chalk_1.default.yellow(`"${answers.projectName}" is reserved. Using "${projectName}".`));
+        console.log(chalk_1.default.yellow(`"${projectName.split('-')[0]}" is reserved. Using "${projectName}".`));
     }
     const projectPath = path_1.default.resolve(process.cwd(), projectName);
     if (fs_extra_1.default.existsSync(projectPath)) {

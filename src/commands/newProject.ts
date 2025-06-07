@@ -91,24 +91,37 @@ function copyAndProcessTemplate(templateDir: string, projectPath: string, projec
     return authSecret;
 }
 
-export async function handleNewProjectCommand() {
+export async function handleNewProjectCommand(providedProjectName?: string) {
     console.log(chalk.bold.blue('\nWent - Full-Stack Web Framework\n'));
 
-    const answers = await inquirer.prompt([
-        {
-            type: 'input',
-            name: 'projectName',
-            message: 'Project name:',
-            validate: isValidProjectName,
-        },
-    ]);
+    let projectName: string;
+    
+    if (providedProjectName) {
+        // Use the provided project name and validate it
+        const validation = isValidProjectName(providedProjectName);
+        if (validation !== true) {
+            console.error(chalk.red(`Invalid project name: ${validation}`));
+            process.exit(1);
+        }
+        projectName = providedProjectName.trim();
+    } else {
+        // Prompt for project name if not provided
+        const answers = await inquirer.prompt([
+            {
+                type: 'input',
+                name: 'projectName',
+                message: 'Project name:',
+                validate: isValidProjectName,
+            },
+        ]);
+        projectName = answers.projectName.trim();
+    }
 
-    let projectName: string = answers.projectName.trim();
     const reservedNames = ["test", "tests", "example", "temp", "tmp"];
     if (reservedNames.includes(projectName.toLowerCase())) {
         const timestamp = Math.floor(Date.now() / 1000).toString().slice(-6);
         projectName = `${projectName}-${timestamp}`;
-        console.log(chalk.yellow(`"${answers.projectName}" is reserved. Using "${projectName}".`));
+        console.log(chalk.yellow(`"${projectName.split('-')[0]}" is reserved. Using "${projectName}".`));
     }
     
     const projectPath = path.resolve(process.cwd(), projectName);

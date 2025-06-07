@@ -10,6 +10,19 @@ const program = new commander_1.Command();
 program
     .version('0.0.1') // Consider reading from package.json later
     .description('A CLI tool for generating Next.js projects with the "went" stack.');
+// Main command - if first argument is not a known command, treat it as project name
+program
+    .argument('[project-name]', 'Name of the project to create')
+    .action(async (projectName) => {
+    if (projectName) {
+        // If a project name is provided, create a new project
+        await (0, newProject_1.handleNewProjectCommand)(projectName);
+    }
+    else {
+        // If no project name, show help
+        program.outputHelp();
+    }
+});
 program
     .command('hello')
     .description('Prints a hello message.')
@@ -38,12 +51,12 @@ dbCommand
     .action(async (migrationName) => {
     await (0, dbMigrate_1.handleDbMigrate)(migrationName);
 });
-// Command for creating a new project
+// Command for creating a new project (explicit command)
 program
-    .command('new')
+    .command('new [project-name]')
     .description('Creates a new Next.js project with the "went" stack.')
-    .action(async () => {
-    await (0, newProject_1.handleNewProjectCommand)();
+    .action(async (projectName) => {
+    await (0, newProject_1.handleNewProjectCommand)(projectName);
 });
 // Command for fixing common issues in existing projects
 program
@@ -60,7 +73,3 @@ program
     .command('db:migrate [name]', { hidden: true })
     .action(async (name) => await (0, dbMigrate_1.handleDbMigrate)(name));
 program.parse(process.argv);
-// Output help if no command is specified
-if (!process.argv.slice(2).length) {
-    program.outputHelp();
-}

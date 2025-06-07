@@ -1,7 +1,8 @@
 {
-  "name": "went",
-  "version": "1.0.0",
-  "main": "index.js",
+  "name": "create-went-app",
+  "version": "0.0.1",
+  "description": "A CLI tool for generating Next.js projects with authentication, database setup, and modern tooling",
+  "main": "dist/index.js",
   "bin": {
     "went": "./dist/index.js"
   },
@@ -9,12 +10,39 @@
     "test": "echo \"Error: no test specified\" && exit 1",
     "start": "node dist/index.js",
     "build": "tsc",
-    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts"
+    "dev": "nodemon --watch src --ext ts --exec ts-node src/index.ts",
+    "prepublishOnly": "npm run build"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "description": "",
+  "keywords": [
+    "cli",
+    "nextjs",
+    "react",
+    "typescript",
+    "authentication",
+    "prisma",
+    "tailwind",
+    "template",
+    "generator",
+    "boilerplate"
+  ],
+  "author": "Felix",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/felixhard/went"
+  },
+  "homepage": "https://github.com/felixhard/went#readme",
+  "bugs": {
+    "url": "https://github.com/felixhard/went/issues"
+  },
+  "files": [
+    "dist/**/*",
+    "templates/**/*",
+    "README.md"
+  ],
+  "engines": {
+    "node": ">=18.0.0"
+  },
   "devDependencies": {
     "@types/chalk": "^0.4.31",
     "@types/fs-extra": "^11.0.4",
