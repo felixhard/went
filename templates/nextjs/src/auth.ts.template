@@ -6,7 +6,7 @@ import { signInSchema } from "@/lib/zod"
 import { getUserFromDb, getUserByEmail, createUserFromOAuth } from "@/utils/db"
 import { sendEmail, generateWelcomeEmail } from "@/lib/email"
 
-// Build providers array conditionally
+// Build providers array declaratively with conditional Google provider
 const providers = [
     Credentials({
         // You can specify which fields should be submitted, by adding keys to the `credentials` object.
@@ -47,22 +47,20 @@ const providers = [
             }
         },
     }),
-]
-
-// Add Google provider if environment variables are set
-if (process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET) {
-    providers.push(
-        Google({
+    // Conditionally include Google provider if environment variables are set
+    ...(process.env.GOOGLE_CLIENT_ID && process.env.GOOGLE_CLIENT_SECRET
+        ? [Google({
             clientId: process.env.GOOGLE_CLIENT_ID,
             clientSecret: process.env.GOOGLE_CLIENT_SECRET,
-        })
-    )
-}
+        })]
+        : []
+    ),
+]
 
 export const { handlers, auth, signIn, signOut } = NextAuth({
     providers,
     callbacks: {
-        async signIn({ user, account, profile }) {
+        async signIn({ user, account }) {
             // Handle OAuth sign-in
             if (account?.provider === "google" && user.email) {
                 try {
