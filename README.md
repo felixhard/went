@@ -101,7 +101,7 @@ Visit [http://localhost:3000](http://localhost:3000) to see your application.
 |----------|-------------|----------|
 | `DATABASE_URL` | PostgreSQL connection string | Yes |
 | `NEXTAUTH_URL` | Your app's URL (auto-set in development) | Production only |
-| `NEXTAUTH_SECRET` | Auth.js secret (auto-generated) | Yes |
+| `AUTH_SECRET` | Auth.js secret (auto-generated) | Yes |
 | `RESEND_API_KEY` | Resend API key for emails | Yes |
 | `FROM_EMAIL` | Sender email address | Yes |
 
